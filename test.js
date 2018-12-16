@@ -1,7 +1,7 @@
 var envify = require('./custom')
   , test = require('tape')
   , fs = require('fs')
-
+/*
 test('Replaces environment variables', function(t) {
   var buffer = ''
   var stream = envify({
@@ -77,7 +77,7 @@ test('Ignores computed object', function(t) {
       , 'process.env.HELLO'
     ].join('\n'))
 })
-
+*/
 test('Doesn\'t ignore assigning to a variable', function(t) {
   var buffer = ''
   var stream = envify({
@@ -107,7 +107,7 @@ test('Doesn\'t ignore assigning to a variable', function(t) {
       , 'b = process.env.NOTTHERE || null'
     ].join('\n'))
 })
-
+/*
 test('subarg syntax', function(t) {
   var buffer = ''
   var stream = envify({
@@ -183,3 +183,4 @@ test('-t [ envify purge --argument ]', function(t) {
       , 'var y = process.env.argument'
     ].join('\n'))
 })
+*/

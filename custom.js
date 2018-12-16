@@ -41,8 +41,27 @@ module.exports = function(rootEnv) {
       var parsed = acorn.parse(source)
       for (var i = 0; i < parsed.body.length; i++) {
         var node = parsed.body[i]
-        if (!node.expression) console.log(node)
+        if (node.type === 'VariableDeclaration') {
+          for (var j = 0; j < node.declarations.length; j++) {
+            console.log('-------')
+            var init = node.declarations[j].init
+            if (init.left) {
+              init = init.left
+            }
+            var n = {
+              type: 'ExpressionStatement',
+              expression: init
+            }
+            console.log('trying to match', n)
+            processNode(n)
+          }
+        }
+        processNode(node)
+      }
+
+      function processNode(node) {
         if (match(node)) {
+          console.log('matched', node)
           var key = node.expression.property.name || node.expression.property.value
           for (var k = 0; k < envs.length; k++) {
             var value = envs[k][key]
