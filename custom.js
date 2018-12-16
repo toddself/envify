@@ -1,4 +1,4 @@
-var esprima = require('esprima')
+var acorn   = require('acorn')
   , through = require('through')
 
 var processEnvPattern = /\bprocess\.env\b/
@@ -9,7 +9,6 @@ module.exports = function(rootEnv) {
   return function envify(file, argv) {
     if (/\.json$/.test(file)) return through()
 
-    var Syntax = esprima.Syntax
     var buffer = []
     argv = argv || {}
 
@@ -26,47 +25,52 @@ module.exports = function(rootEnv) {
 
       function match(node) {
         return (
-          node.type === Syntax.MemberExpression
-          && node.object.type === Syntax.MemberExpression
-          && node.object.computed === false
-          && node.object.object.type === Syntax.Identifier
-          && node.object.object.name === 'process'
-          && node.object.property.type === Syntax.Identifier
-          && node.object.property.name === 'env'
-          && (node.computed ? node.property.type === Syntax.Literal : node.property.type === Syntax.Identifier)
+          node.type === 'ExpressionStatement'
+          && node.expression.type === 'MemberExpression'
+          && node.expression.object.computed === false
+          && node.expression.object.object.type === 'Identifier'
+          && node.expression.object.object.name === 'process'
+          && node.expression.object.property.type === 'Identifier'
+          && node.expression.object.property.name === 'env'
+          && (node.expression.computed
+            ? node.expression.property.type === 'Literal'
+            : node.expression.property.type === 'Identifier')
         )
       }
 
-      esprima.parse(source, { tolerant: true }, function(node, meta) {
+      var parsed = acorn.parse(source)
+      for (var i = 0; i < parsed.body.length; i++) {
+        var node = parsed.body[i]
+        if (!node.expression) console.log(node)
         if (match(node)) {
-          var key = node.property.name || node.property.value
-          for (var i = 0; i < envs.length; i++) {
-            var value = envs[i][key]
+          var key = node.expression.property.name || node.expression.property.value
+          for (var k = 0; k < envs.length; k++) {
+            var value = envs[k][key]
             if (value !== undefined) {
-              replacements.push({ node: node, meta: meta, value: JSON.stringify(value) })
-              return
+              replacements.push({ node: node, value: JSON.stringify(value) })
+              continue
             }
           }
           if (purge) {
-            replacements.push({ node: node, meta: meta, value: undefined })
+            replacements.push({ node: node, value: undefined })
           }
-        } else if (node.type === Syntax.AssignmentExpression) {
-          for (var i = 0; i < replacements.length; ++i) {
-            if (replacements[i].node === node.left) {
-              replacements.splice(i, 1)
+        } else if (node.expression && node.expression.type === 'AssignmentExpression') {
+          for (var j = 0; j < replacements.length; ++j) {
+            if (replacements[j].node === node.expression.left) {
+              replacements.splice(k, 1)
             }
           }
         }
-      })
+      }
 
       var result = source
       if (replacements.length > 0) {
         replacements.sort(function (a, b) {
-          return b.meta.start.offset - a.meta.start.offset
+          return b.node.start - a.node.start
         })
         for (var i = 0; i < replacements.length; i++) {
           var r = replacements[i]
-          result = result.slice(0, r.meta.start.offset) + r.value + result.slice(r.meta.end.offset)
+          result = result.slice(0, r.node.start) + r.value + result.slice(r.node.end)
         }
       }
 

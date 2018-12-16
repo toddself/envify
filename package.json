@@ -20,6 +20,7 @@
     "tape": "^4.6.0"
   },
   "dependencies": {
+    "acorn": "^6.0.4",
     "esprima": "^4.0.0",
     "through": "~2.3.4"
   },
